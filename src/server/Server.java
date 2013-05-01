@@ -33,26 +33,27 @@ public class Server {
 
                 ){
 
-                DatagramPacket outPacket = new DatagramPacket(buffer,buffer.length);
-                DatagramPacket inPacket = new DatagramPacket(buffer,buffer.length);
-
                 System.out.println("Wellcome to guess the number...I'm the server");
+                DatagramPacket inPacket = new DatagramPacket(buffer,buffer.length);
                 udpSocket.receive(inPacket); //receive packets from the outside world
-
                 numberIn = new String(inPacket.getData(),0,inPacket.getLength());
-                numberOut = new String(outPacket.getData(),0,inPacket.getLength());
 
+                System.out.println("client says: " + numberIn);
                 if(numberIn != currentNumber){
                     currentNumber = numberIn;
                     message = checkNumber(numberIn);
                 }
-
+                //prepare the packet
+                buffer = message.getBytes();
+                DatagramPacket outPacket = new DatagramPacket(buffer,buffer.length, inPacket.getAddress(),
+                inPacket.getPort());
                 udpSocket.send(outPacket);
 
 
             } catch (IOException e){
-                System.out.println("Problems with the Socket");
+                System.out.println("Problems with the Socket,probably the port is already taken");
                 e.getMessage();
+                System.exit(1);
 
             }
 
