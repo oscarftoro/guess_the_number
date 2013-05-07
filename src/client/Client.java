@@ -1,5 +1,9 @@
 package client;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -20,12 +24,12 @@ public class Client extends Thread {
     DatagramPacket packet;
     static byte[] buffer = new byte[256];
     int port = 7890;
-    String fromServer, clientNumber, clientName;
+    String fromServer, clientNumber, clientName, packetTodeliver,messageFromServer;
     public InetAddress host;
     boolean youNotGuessTheNumber = true;
     BufferedReader consoleIn;
-
-
+    Splitter splitter = Splitter.on('¤');
+    String[] responseFromServer;
     public Client(int port) throws UnknownHostException{
         this.port = port;
         host = InetAddress.getByName("localhost");
@@ -34,6 +38,9 @@ public class Client extends Thread {
 
     public void connect() throws IOException{
         class Operator {
+            //this is the responsible for the framing of our packet
+            Joiner framer = Joiner.on("¤").skipNulls();
+
 
             BufferedReader bufferedReader;
             DatagramSocket datagramSocket;
@@ -54,6 +61,8 @@ public class Client extends Thread {
                 System.out.println("What is your name? :");
                 try {
                     clientName = bufferedReader.readLine();
+
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -64,13 +73,18 @@ public class Client extends Thread {
                 //prepare the number to send
                 System.out.print("guess a number between 0 and 100 :");
                 try {
+                    //get the number from the client
                     clientNumber = bufferedReader.readLine();
+
+                    //pack the name of user with the number
+                    packetTodeliver = framer.join(clientName,clientNumber);
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
-                //put the number in packet to deliver
-                buffer = clientNumber.getBytes(); //convert String to bytes
+                //put the framed data  in a packet of bytes to deliver
+                buffer = packetTodeliver.getBytes(); //convert String to bytes
                 DatagramPacket outPacket = new DatagramPacket(buffer,buffer.length,host,port);
 
                 //send and receive packages
@@ -82,16 +96,21 @@ public class Client extends Thread {
 
                 try {
                     datagramSocket.receive(datagramPacket);
+
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 fromServer = new String(datagramPacket.getData(),0,datagramPacket.getLength());
+                //array with the response from the server
+                responseFromServer =  Iterables.toArray(splitter.split(fromServer), String.class);
 
             }
 
             public void informWinner(){
-                System.out.println("Server says: " + fromServer );
-                System.out.println("You won");
+
+                System.out.println("Server says: " + responseFromServer[1] );
+
                 youNotGuessTheNumber = false;
             }
         }
@@ -103,6 +122,8 @@ public class Client extends Thread {
 
             DatagramPacket inPacket = new DatagramPacket(buffer,buffer.length);
             Operator operator = new Operator(udpClientSocket, consoleIn,inPacket);
+
+
             while(youNotGuessTheNumber) {
 
                if(clientName == null){
@@ -112,13 +133,16 @@ public class Client extends Thread {
 
                    //first time
                    if(fromServer == null){
+
                        operator.prepareNumber();
 
-                       //if you do not guess the number
-                   } else if (fromServer != null && !fromServer.equals("you guessed my number!")) {
+                        //if you do not guess the number and the first element of the packet is not "die"
+                   } else if (fromServer != null && !responseFromServer[0].equals("die")) {
+                       //responseFromServer
 
+                       messageFromServer = responseFromServer[1];
                        //print received info
-                       System.out.println("Server says: " + fromServer );
+                       System.out.println("Server says: " + messageFromServer );
 
                        //Try again and send to the server
                        //prepare the number to send
