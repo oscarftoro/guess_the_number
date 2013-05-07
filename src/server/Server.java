@@ -26,6 +26,8 @@ public class Server {
     public static void main(String[] args) throws Exception {
         //generate a number
         generatedNumber = new Double(Math.random() * 100).intValue();
+        System.out.println("our number: " + generatedNumber);
+
         StringBuffer stringBuffer = new StringBuffer();
         while(notGuessed){
             //try with resources close this objects after use them
@@ -59,7 +61,7 @@ public class Server {
 
         }
     }
-
+    //THE GAME
     private static String checkNumber(String receivedNumber){
 
         try{

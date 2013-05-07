@@ -19,8 +19,9 @@ public class Client extends Thread {
     DatagramPacket packet;
     static byte[] buffer = new byte[256];
     int port = 7890;
-    String fromServer, clientNumber;
+    String fromServer, clientNumber, clientName;
     public InetAddress host;
+    boolean youNotGuessTheNumber = true;
     public Client(int port) throws UnknownHostException{
         this.port = port;
         host = InetAddress.getByName("localhost");
@@ -34,25 +35,62 @@ public class Client extends Thread {
         ){
 
             DatagramPacket inPacket = new DatagramPacket(buffer,buffer.length);
+            while(youNotGuessTheNumber) {
 
-            while(true) {
+               if(clientName == null){
+                   System.out.println("Welcome to guess the number");
+                   System.out.println("What is your name? :");
+                   clientName = consoleIn.readLine();
+                   System.out.println("your name is :" + clientName);
 
-                //prepare the number to send
-                System.out.print("guess a number between 0 and 100 :");
-                clientNumber = consoleIn.readLine();
+               }else {
 
-                //put the number in packet to deliver
-                buffer = clientNumber.getBytes(); //convert String to bytes
-                DatagramPacket outPacket = new DatagramPacket(buffer,buffer.length,host,port);
+                   //first time
+                   if(fromServer == null){
 
-                //send and receive packages
-                udpClientSocket.send(outPacket);
-                udpClientSocket.receive(inPacket);
+                       //prepare the number to send
+                       System.out.print("guess a number between 0 and 100 :");
+                       clientNumber = consoleIn.readLine();
 
-                fromServer = new String(inPacket.getData(),0,inPacket.getLength());
-                System.out.println("Server says: " + fromServer );
+                       //put the number in packet to deliver
+                       buffer = clientNumber.getBytes(); //convert String to bytes
+                       DatagramPacket outPacket = new DatagramPacket(buffer,buffer.length,host,port);
 
-                udpClientSocket.send(outPacket);
+                       //send and receive packages
+                       udpClientSocket.send(outPacket);
+                       udpClientSocket.receive(inPacket);
+                       fromServer = new String(inPacket.getData(),0,inPacket.getLength());
+
+                       //if you not guess the number
+                   } else if (fromServer != null && !fromServer.equals("you guessed my number!")) {
+                       //receive
+
+                       System.out.println("Server says: " + fromServer );
+
+                       //Try again and send to the server
+                       //prepare the number to send
+                       System.out.print("guess a number between 0 and 100:");
+                       clientNumber = consoleIn.readLine();
+
+                       //put the number in packet to deliver
+                       buffer = clientNumber.getBytes(); //convert String to bytes
+                       DatagramPacket outPacket = new DatagramPacket(buffer,buffer.length,host,port);
+
+                       //send and receive packages
+                       udpClientSocket.send(outPacket);
+                       udpClientSocket.receive(inPacket);
+                       fromServer = new String(inPacket.getData(),0,inPacket.getLength());
+                   } else {
+                       //receive packet
+                       /*udpClientSocket.receive(inPacket);
+                       fromServer = new String(inPacket.getData(),0,inPacket.getLength());*/
+                       System.out.println("Server says: " + fromServer );
+
+                       System.out.println("You won");
+                       youNotGuessTheNumber = false;
+
+                   }
+               }
             }
 
         } catch (IOException e){
